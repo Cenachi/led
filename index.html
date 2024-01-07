@@ -1,98 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <title>Controle Remoto do LED</title>
-</head>
-<body>
-    <button onclick="iniciarComunicacaoSerial()">Iniciar Comunicação Serial</button>
-    <button onclick="ligarLed()">Ligar LED</button>
-    <button onclick="desligarLed()">Desligar LED</button>
-    <p id="distancia">Distância: -- cm</p>
+  </head>
+  <body>
+    <main class="root">
+      <div class="card">
+        <p id="distancia" class="distance">Distância: -- cm</p>
+
+        <button onclick="iniciarComunicacaoSerial()" class="button full">
+          Iniciar Comunicação Serial
+        </button>
+
+        <div class="wrapper">
+          <button onclick="ligarLed()" class="button turn-on">Ligar LED</button>
+          <button onclick="desligarLed()" class="button turn-off">Desligar LED</button>
+        </div>
+      </div>
+    </main>
 
     <script>
-        let port;
-        let writer;
-        const baudRate = 9600;
+      let port;
+      let writer;
+      const baudRate = 9600;
 
-        // Função para inicializar a conexão com a porta serial
-        async function iniciarComunicacaoSerial() {
-            try {
-                // Solicitação de acesso à porta serial
-                port = await navigator.serial.requestPort();
+      // Função para inicializar a conexão com a porta serial
+      async function iniciarComunicacaoSerial() {
+        try {
+          // Solicitação de acesso à porta serial
+          port = await navigator.serial.requestPort();
 
-                // Abre a porta serial com a taxa de transmissão especificada
-                await port.open({ baudRate });
+          // Abre a porta serial com a taxa de transmissão especificada
+          await port.open({ baudRate });
 
-                console.log("Conectado à porta serial");
+          console.log("Conectado à porta serial");
 
-                // Obtém o escritor da porta serial
-                writer = port.writable.getWriter();
+          // Obtém o escritor da porta serial
+          writer = port.writable.getWriter();
 
-                // Inicia a leitura da distância
-                lerDistancia();
-            } catch (err) {
-                console.error("Erro ao abrir a porta serial:", err);
+          // Inicia a leitura da distância
+          lerDistancia();
+        } catch (err) {
+          console.error("Erro ao abrir a porta serial:", err);
 
-                // Exibe informações adicionais sobre o erro, se disponíveis
-                if (err.message) {
-                    console.error("Mensagem de erro:", err.message);
-                }
+          // Exibe informações adicionais sobre o erro, se disponíveis
+          if (err.message) {
+            console.error("Mensagem de erro:", err.message);
+          }
+        }
+      }
+
+      // Função para enviar um comando pela porta serial
+      async function enviarComando(comando) {
+        if (!writer) {
+          console.error("Escritor não disponível.");
+          return;
+        }
+
+        await writer.write(new TextEncoder().encode(comando));
+
+        // Atualiza imediatamente o estado do LED com base no comando enviado
+        if (comando === "A") {
+          document.getElementById("distancia").innerText =
+            "Distância: Ligando LED";
+        } else if (comando === "B") {
+          document.getElementById("distancia").innerText =
+            "Distância: Desligando LED";
+        }
+      }
+
+      // Função para ligar o LED
+      function ligarLed() {
+        enviarComando("A");
+      }
+
+      // Função para desligar o LED
+      function desligarLed() {
+        enviarComando("B");
+      }
+
+      // Função para ler e exibir a distância
+      async function lerDistancia() {
+        const reader = port.readable.getReader();
+
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+
+            if (done) {
+              console.log("Leitura concluída");
+              break;
             }
+
+            const distancia = parseFloat(new TextDecoder().decode(value));
+
+            // Atualiza o elemento HTML com a distância
+            document.getElementById(
+              "distancia"
+            ).innerText = `Distância: ${distancia} cm`;
+          }
+        } catch (error) {
+          console.error("Erro ao ler distância:", error);
+        } finally {
+          reader.releaseLock();
         }
-
-        // Função para enviar um comando pela porta serial
-        async function enviarComando(comando) {
-            if (!writer) {
-                console.error("Escritor não disponível.");
-                return;
-            }
-
-            await writer.write(new TextEncoder().encode(comando));
-
-            // Atualiza imediatamente o estado do LED com base no comando enviado
-            if (comando === "A") {
-                document.getElementById('distancia').innerText = "Distância: Ligando LED";
-            } else if (comando === "B") {
-                document.getElementById('distancia').innerText = "Distância: Desligando LED";
-            }
-        }
-
-        // Função para ligar o LED
-        function ligarLed() {
-            enviarComando("A");
-        }
-
-        // Função para desligar o LED
-        function desligarLed() {
-            enviarComando("B");
-        }
-
-        // Função para ler e exibir a distância
-        async function lerDistancia() {
-            const reader = port.readable.getReader();
-
-            try {
-                while (true) {
-                    const { value, done } = await reader.read();
-
-                    if (done) {
-                        console.log("Leitura concluída");
-                        break;
-                    }
-
-                    const distancia = parseFloat(new TextDecoder().decode(value));
-
-                    // Atualiza o elemento HTML com a distância
-                    document.getElementById('distancia').innerText = `Distância: ${distancia} cm`;
-                }
-            } catch (error) {
-                console.error("Erro ao ler distância:", error);
-            } finally {
-                reader.releaseLock();
-            }
-        }
+      }
     </script>
-</body>
+  </body>
 </html>
