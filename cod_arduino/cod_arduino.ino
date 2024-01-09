@@ -63,7 +63,7 @@ void loop() {
 
     // Imprimindo a distância na porta serial da Arduino IDE
     SERIAL_ARDUINO.print(distance);
-    SERIAL_ARDUINO.println(" cm");
+    // SERIAL_ARDUINO.println(" cm");
 
     // Comando para acender o LED com base na distância
     if (distance > 5 && distance <= 15) {
@@ -71,6 +71,8 @@ void loop() {
     }else if (distance <= 5) {
       digitalWrite(ledPin, HIGH);
       //ledState = HIGH;  // Atualiza o estado do LEDstatements
+    }else if(distance > 15){
+      digitalWrite(ledPin, LOW);
     }
   }
     
